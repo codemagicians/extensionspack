@@ -37,9 +37,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DateTimeExtensions.cs" />
+    <Compile Include="Logger\EntensionsPackLogger.cs" />
     <Compile Include="IEnumerableExtensions.cs" />
+    <Compile Include="Logger\EntensionsPackLoggerLogEntry.cs" />
     <Compile Include="RandomExtensions.cs" />
     <Compile Include="ReflectionExtensions.cs" />
+    <Compile Include="StringExtensions.cs" />
     <Compile Include="TaskExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

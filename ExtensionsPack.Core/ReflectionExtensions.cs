@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using ExtensionsPack.Core.Logger;
 
 namespace ExtensionsPack.Core
 {
@@ -63,7 +64,13 @@ namespace ExtensionsPack.Core
         /// <param name="useCaching">Whether to store values in cache to improve performance</param>
         /// <param name="typeSafetyCheck">Whether to validate object type before check</param>
         /// <returns>True if value is found</returns>
-        public static bool ContainsPropertyWithValue(this object obj, object propertyValue, bool withPrivate = true, bool useCaching = true, bool typeSafetyCheck = false)
+        public static bool ContainsPropertyWithValue(
+            this object obj,
+            object propertyValue,
+            bool withPrivate = true,
+            bool withStatic = true,
+            bool useCaching = true,
+            bool typeSafetyCheck = true)
         {
             if (obj == null || propertyValue == null)
             {
@@ -77,12 +84,13 @@ namespace ExtensionsPack.Core
             {
                 return false;
             }
+            BindingFlags bindingFlags = GetBindingFlags(withPrivate, withStatic);
 
             if (useCaching && !ObjPropertiesMap.Value.TryGetValue(type.FullName, out properties))
             {
-                ObjPropertiesMap.Value.Add(type.FullName, properties = withPrivate ? type.GetProperties(BindingFlags.Instance & BindingFlags.NonPublic) : type.GetProperties());
+                ObjPropertiesMap.Value.Add(type.FullName, properties = type.GetProperties(bindingFlags));
             }
-            properties = properties ?? (withPrivate ? type.GetProperties(BindingFlags.Instance & BindingFlags.NonPublic) : type.GetProperties());
+            properties = properties ?? type.GetProperties(bindingFlags);
             return properties.Any(p => p.GetValue(obj)?.Equals(propertyValue) == true);
         }
 
@@ -95,7 +103,13 @@ namespace ExtensionsPack.Core
         /// <param name="useCaching">Whether to store values in cache to improve performance</param>
         /// <param name="typeSafetyCheck">Whether to validate object type before check</param>
         /// <returns>True if value is found</returns>
-        public static bool ContainsFieldWithValue(this object obj, object fieldValue, bool withPrivate = true, bool useCaching = true, bool typeSafetyCheck = false)
+        public static bool ContainsFieldWithValue(
+            this object obj,
+            object fieldValue,
+            bool withPrivate = true,
+            bool withStatic = true,
+            bool useCaching = true,
+            bool typeSafetyCheck = true)
         {
             if (obj == null || fieldValue == null)
             {
@@ -109,12 +123,13 @@ namespace ExtensionsPack.Core
             {
                 return false;
             }
+            BindingFlags bindingFlags = GetBindingFlags(withPrivate, withStatic);
 
             if (useCaching && !ObjFieldsMap.Value.TryGetValue(type.FullName, out fields))
             {
-                ObjFieldsMap.Value.Add(type.FullName, fields = withPrivate ? type.GetFields(BindingFlags.Instance & BindingFlags.NonPublic) : type.GetFields());
+                ObjFieldsMap.Value.Add(type.FullName, fields = type.GetFields(bindingFlags));
             }
-            fields = fields ?? (withPrivate ? type.GetFields(BindingFlags.Instance & BindingFlags.NonPublic) : type.GetFields());
+            fields = fields ?? type.GetFields(bindingFlags);
             return fields.Any(p => p.GetValue(obj)?.Equals(fieldValue) == true);
         }
 
@@ -139,6 +154,98 @@ namespace ExtensionsPack.Core
                 return 1;
             }
             return ContainsFieldWithValue(obj, value, withPrivate, useCaching, typeSafetyCheck) ? 2 : 0;
+        }
+
+        /// <summary>
+        /// Checks whether the object contains a property with certain value
+        /// </summary>
+        /// <param name="objects">A collection of object on which to perform the search</param>
+        /// <param name="propertyValues">A collection of values for the properties</param>
+        /// <param name="withPrivate">Whether to check in private properties</param>
+        /// <param name="withStatic">Whether to check in static properties</param>
+        /// <param name="useCaching">Whether to store values in cache to improve performance</param>
+        /// <param name="typeSafetyCheck">Whether to validate object type before check</param>
+        /// <param name="caseSensitive">Whether to do a case-sensitive check for strings or</param>
+        /// <returns>True if value is found</returns>
+        public static IEnumerable<object> FindObjsByPropertyValues(
+            this IEnumerable<object> objects,
+            IEnumerable<object> propertyValues,
+            bool withPrivate = true,
+            bool withStatic = true,
+            bool useCaching = true,
+            bool typeSafetyCheck = true,
+            bool caseSensitive = false)
+        {
+            if (objects.IsNullOrEmpty() || propertyValues.IsNullOrEmpty())
+            {
+                return null;
+            }
+            PropertyInfo[] properties = null;
+            var typeObjs = objects
+                           .GroupBy(obj => obj.GetType())
+                           .Where(g => !typeSafetyCheck || IsClassOrStruct(g.Key))
+                           .ToDictionary(x => x.Key, x => x);
+            BindingFlags bindingFlags = GetBindingFlags(withPrivate, withStatic);
+            var filteredEntities = new List<object>();
+            var comparer = caseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+            var stringValuesHashes = new HashSet<string>(propertyValues.OfType<string>(), comparer);
+            var valuesHashes = new HashSet<object>(propertyValues);
+            var stringType = typeof(string);
+
+            foreach (var keyValue in typeObjs)
+            {
+                try
+                {
+                    var type = keyValue.Key;
+                    if (useCaching && !ObjPropertiesMap.Value.TryGetValue(type.FullName, out properties))
+                    {
+                        ObjPropertiesMap.Value.Add(type.FullName, properties = type.GetProperties(bindingFlags));
+                    }
+
+                    properties = properties ?? type.GetProperties(bindingFlags);
+
+                    filteredEntities.AddRange(keyValue.Value.Where(entity => properties.Any(p =>
+                    {
+                        var propValue = p.GetValue(entity);
+                        return propValue != null && (p.PropertyType == stringType ? stringValuesHashes.Contains((string) propValue) : valuesHashes.Contains(propValue));
+                    })));
+                }
+                catch (Exception ex)
+                {
+                    EntensionsPackLogger.Error(ex);
+                }
+            }
+            return filteredEntities;
+        }
+
+        /// <summary>
+        /// Checks whether the type is a class or a struct
+        /// </summary>
+        /// <param name="type">Type to check</param>
+        /// <returns>True if the type is class or struct</returns>
+        public static bool IsClassOrStruct(this Type type)
+        {
+            if (type.IsPrimitive)
+            {
+                return false;
+            }
+            return (type.IsClass && !typeof(Delegate).IsAssignableFrom(type)) || (type.IsValueType && !type.IsEnum);
+        }
+
+        private static BindingFlags GetBindingFlags(bool withPrivate, bool withStatic)
+        {
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
+
+            if (withStatic)
+            {
+                bindingFlags = bindingFlags | BindingFlags.Static;
+            }
+
+            if (withPrivate)
+            {
+                bindingFlags = bindingFlags | BindingFlags.NonPublic;
+            }
+            return bindingFlags;
         }
     }
 }
