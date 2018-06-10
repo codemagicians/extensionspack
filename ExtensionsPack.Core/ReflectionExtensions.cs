@@ -60,7 +60,8 @@ namespace ExtensionsPack.Core
         /// </summary>
         /// <param name="obj">Object to perform check upon</param>
         /// <param name="propertyValue">Value of the property</param>
-        /// <param name="withPrivate">Whether to check in private properties</param>
+        /// <param name="withPrivate">Whether to check in private properties</param>\
+        /// <param name="withStatic">Whether to check in static properties</param>
         /// <param name="useCaching">Whether to store values in cache to improve performance</param>
         /// <param name="typeSafetyCheck">Whether to validate object type before check</param>
         /// <returns>True if value is found</returns>
@@ -100,6 +101,7 @@ namespace ExtensionsPack.Core
         /// <param name="obj">Object to perform check upon</param>
         /// <param name="fieldValue">Value of the field</param>
         /// <param name="withPrivate">Whether to check in private properties</param>
+        /// <param name="withStatic">Whether to check in static properties</param>
         /// <param name="useCaching">Whether to store values in cache to improve performance</param>
         /// <param name="typeSafetyCheck">Whether to validate object type before check</param>
         /// <returns>True if value is found</returns>
