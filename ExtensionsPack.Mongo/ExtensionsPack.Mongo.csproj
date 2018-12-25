@@ -7,8 +7,8 @@
     <ProjectGuid>{996771EB-47FE-4B06-817C-67B0467286E2}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MongoExtensions</RootNamespace>
-    <AssemblyName>MongoExtensions</AssemblyName>
+    <RootNamespace>ExtensionsPack.Mongo</RootNamespace>
+    <AssemblyName>ExtensionsPack.Mongo</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -45,6 +45,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ExtensionsPack.Core\ExtensionsPack.Core.csproj">
+      <Project>{D27AE766-A4FF-4553-9F49-6D02CFC85BF4}</Project>
+      <Name>ExtensionsPack.Core</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

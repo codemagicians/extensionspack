@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.27703.2000
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtensionsPack.Core", "ExtensionsPack.Core\ExtensionsPack.Core.csproj", "{D27AE766-A4FF-4553-9F49-6D02CFC85BF4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoExtensions", "MongoExtensions\MongoExtensions.csproj", "{996771EB-47FE-4B06-817C-67B0467286E2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtensionsPack.Mongo", "ExtensionsPack.Mongo\ExtensionsPack.Mongo.csproj", "{996771EB-47FE-4B06-817C-67B0467286E2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetCore.ExtensionPack.Core", "NetCore.ExtensionPack.Core\NetCore.ExtensionPack.Core.csproj", "{F802BA3F-E98E-4E4C-AEE6-0D6F99C77F67}"
 EndProject
