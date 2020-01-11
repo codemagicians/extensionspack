@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using ExtensionsPack.Core.Logger;
 
 namespace ExtensionsPack.Core
 {
@@ -194,28 +193,18 @@ namespace ExtensionsPack.Core
             var valuesHashes = new HashSet<object>(propertyValues);
             var stringType = typeof(string);
 
-            foreach (var keyValue in typeObjs)
+            foreach (var (key, value) in typeObjs)
             {
-                try
+                if (useCaching && !ObjPropertiesMap.Value.TryGetValue(key.FullName, out properties))
                 {
-                    var type = keyValue.Key;
-                    if (useCaching && !ObjPropertiesMap.Value.TryGetValue(type.FullName, out properties))
-                    {
-                        ObjPropertiesMap.Value.Add(type.FullName, properties = type.GetProperties(bindingFlags));
-                    }
-
-                    properties = properties ?? type.GetProperties(bindingFlags);
-
-                    filteredEntities.AddRange(keyValue.Value.Where(entity => properties.Any(p =>
-                    {
-                        var propValue = p.GetValue(entity);
-                        return propValue != null && (p.PropertyType == stringType ? stringValuesHashes.Contains((string) propValue) : valuesHashes.Contains(propValue));
-                    })));
+                    ObjPropertiesMap.Value.Add(key.FullName, properties = key.GetProperties(bindingFlags));
                 }
-                catch (Exception ex)
+                properties = properties ?? key.GetProperties(bindingFlags);
+                filteredEntities.AddRange(value.Where(entity => properties.Any(p =>
                 {
-                    EntensionsPackLogger.Error(ex);
-                }
+                    var propValue = p.GetValue(entity);
+                    return propValue != null && (p.PropertyType == stringType ? stringValuesHashes.Contains((string)propValue) : valuesHashes.Contains(propValue));
+                })));
             }
             return filteredEntities;
         }
@@ -240,12 +229,12 @@ namespace ExtensionsPack.Core
 
             if (withStatic)
             {
-                bindingFlags = bindingFlags | BindingFlags.Static;
+                bindingFlags |= BindingFlags.Static;
             }
 
             if (withPrivate)
             {
-                bindingFlags = bindingFlags | BindingFlags.NonPublic;
+                bindingFlags |= BindingFlags.NonPublic;
             }
             return bindingFlags;
         }

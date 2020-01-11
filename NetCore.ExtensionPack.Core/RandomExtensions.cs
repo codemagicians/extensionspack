@@ -99,16 +99,6 @@ namespace ExtensionsPack.Core
                 : filteredCollection[Rand.Next(0, filteredCollection.Count)];
         }
 
-        public static int GetRandom(int from, int to)
-        {
-            return Rand.Next(from, to);
-        }
-
-        public static int GetRandom(int to)
-        {
-            return Rand.Next(0, to);
-        }
-
         public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> collection, int numberOfTimes = 3)
         {
             if (numberOfTimes < 1)
