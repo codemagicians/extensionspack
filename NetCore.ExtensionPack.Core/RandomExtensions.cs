@@ -8,21 +8,31 @@ namespace ExtensionsPack.Core
     public static class RandomExtensions
     {
         private static Random Rand { get; }
-        private static List<char> AllLettersChars { get; }
+        private static List<char> UpperCaseLettersChars { get; }
+        private static List<char> LowerCaseLettersChars { get; }
         private static List<char> AllNumberChars { get; }
         private static List<char> AllOtherChars { get; }
 
         static RandomExtensions()
         {
             Rand = new Random();
-            AllLettersChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".ToList();
+            UpperCaseLettersChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToList();
+            LowerCaseLettersChars = UpperCaseLettersChars.Select(char.ToLowerInvariant).ToList();
             AllNumberChars = Enumerable.Range(0, 10).Select(x => Convert.ToChar(x.ToString())).ToList();
             AllOtherChars = "~!@#$%^&*(){}[]\"';:.>/?,<|\\`-+".ToList();
         }
 
-        public static T GetDifferentRandom<T>(this IEnumerable<T> collection, T existingValue, Expression<Func<T, T, bool>> filterExpression = null)
+        /// <summary>
+        ///
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="existingValue"></param>
+        /// <param name="filterExpression"></param>
+        /// <returns></returns>
+        public static T GetDifferentRandom<T>(this IEnumerable<T> collection, Func<T, bool> filterExpression)
         {
-            T result = GetDifferentRandomOrDefault(collection, existingValue, filterExpression);
+            T result = GetDifferentRandomOrDefault(collection, filterExpression);
 
             if (result.Equals(default(T)))
             {
@@ -31,47 +41,46 @@ namespace ExtensionsPack.Core
             return result;
         }
 
-        public static T GetDifferentRandomOrDefault<T>(this IEnumerable<T> collection, T existingValue, Expression<Func<T, T, bool>> filterExpression = null)
+        /// <summary>
+        /// Gets first element that
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="filterExpression"></param>
+        /// <returns></returns>
+        public static T GetDifferentRandomOrDefault<T>(this IEnumerable<T> collection, Func<T, bool> filterExpression)
         {
-            Func<T, T, bool> filter = filterExpression?.Compile();
-            var collectionAsList = collection as IList<T> ?? collection?.ToList();
+            var filteredCollection = collection.Where(filterExpression);
+            return !filteredCollection.IsNullOrEmpty() ? filteredCollection.GetRandom() : default(T);
+        }
 
-            if (collectionAsList?.Any() != true)
+        public static T GetRandom<T>(this List<T> list)
+        {
+            if (list.IsNullOrEmpty())
             {
-                return default(T);
+                throw new ArgumentException("Collection cannot be null or empty");
             }
-
-            if (collectionAsList.Count == 1)
-            {
-                var first = collectionAsList.First();
-                return filter?.Invoke(existingValue, first) == true ? first : default(T);
-            }
-            var filteredCollection = filter != null
-                ? collectionAsList.Where(x => filter(existingValue, x)).ToList()
-                : collectionAsList.Where(x => !x.Equals(existingValue)).ToList();
-            return filteredCollection.Any() ? GetRandom(filteredCollection) : default(T);
+            return list.Count == 1 ? list.First() : list[Rand.Next(0, list.Count)];
         }
 
         public static T GetRandom<T>(this IEnumerable<T> collection)
         {
-            var collectionAsList = collection as IList<T> ?? collection?.ToList();
-
-            if (collectionAsList?.Any() != true)
+            if (collection.IsNullOrEmpty())
             {
                 throw new ArgumentException("Collection cannot be null or empty");
             }
-
-            if (collectionAsList.Count == 1)
-            {
-                return collectionAsList.First();
-            }
-            return collectionAsList[Rand.Next(0, collectionAsList.Count)];
+            var index = Rand.Next(0, collection.Count());
+            return collection.ElementAt(index);
         }
 
-        public static T GetRandomOrDefault<T>(this IEnumerable<T> collection, Expression<Func<T, bool>> filterExpression = null)
+        public static T GetRandomOrDefault<T>(this IEnumerable<T> collection, Expression<Func<T, bool>> filterExpression)
         {
-            var filter = filterExpression?.Compile();
-            var collectionAsList = collection as IList<T> ?? collection?.ToList();
+            if (filterExpression == null)
+            {
+                throw new ArgumentNullException(nameof(filterExpression));
+            }
+            var filter = filterExpression.Compile();
+            var collectionAsList = collection.CastToList();
 
             if (collectionAsList?.Any() != true)
             {
@@ -81,12 +90,7 @@ namespace ExtensionsPack.Core
             if (collectionAsList.Count == 1)
             {
                 var element = collectionAsList.First();
-                return filter?.Invoke(element) == false ? default(T) : element;
-            }
-
-            if (filter == null)
-            {
-                return collectionAsList[Rand.Next(0, collectionAsList.Count)];
+                return filter.Invoke(element) == false ? default(T) : element;
             }
             var filteredCollection = collectionAsList.Where(filter).ToList();
 
@@ -99,7 +103,7 @@ namespace ExtensionsPack.Core
                 : filteredCollection[Rand.Next(0, filteredCollection.Count)];
         }
 
-        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> collection, int numberOfTimes = 3)
+        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> collection, int numberOfTimes = 1)
         {
             if (numberOfTimes < 1)
             {
@@ -120,41 +124,70 @@ namespace ExtensionsPack.Core
             return list;
         }
 
-        public static string GetRandomString(int numberOfChars, bool letters = true, bool numbers = true, bool otherSymbols = false, bool withWhitspaces = false)
+        public static string GetRandomString(
+            int numberOfChars,
+            bool upperCaseLetters = true,
+            bool lowerCaseLetters = true,
+            bool numbers = true,
+            bool otherSymbols = false,
+            bool withWhitespaces = false,
+            bool repeatChars = false,
+            int minDistinctChars = 1)
         {
-            return new string(GetCharsPool(numberOfChars, letters, numbers, otherSymbols, withWhitspaces).ToArray());
+            return new string(GetRandomChars(
+                numberOfChars,
+                upperCaseLetters,
+                lowerCaseLetters,
+                numbers,
+                otherSymbols,
+                withWhitespaces,
+                repeatChars,
+                minDistinctChars).ToArray());
         }
 
         public static void FillWithRandomStrings<T>(this IEnumerable<T> collection,
-            Action<T, string> fillValueAction,
-            int? stringLength = null,
-            bool letters = true,
+            Action<T, string> customAction,
+            int stringLength,
+            bool lowerCaseLetters = true,
+            bool upperCaseLetters = true,
             bool numbers = true,
             bool otherSymbols = false,
-            bool withWhitspaces = false)
+            bool withWhitespaces = false,
+            bool repeatChars = true,
+            int minDistinctChars = 1)
         {
             if (collection?.Any() != true)
             {
                 throw new ArgumentNullException(nameof(collection));
             }
-            var charsPool = GetCharsPool(stringLength, letters, numbers, otherSymbols, withWhitspaces).ToList();
-            var collectionAsList = collection as IList<T> ?? collection.ToList();
-            foreach (var element in collectionAsList)
+            var charsPool = GetRandomChars(
+                stringLength,
+                lowerCaseLetters,
+                upperCaseLetters,
+                numbers,
+                otherSymbols,
+                withWhitespaces,
+                repeatChars,
+                minDistinctChars).ToList();
+
+            foreach (var element in collection)
             {
-                fillValueAction(element, new string(charsPool.ToArray()));
-                charsPool.Shuffle(1);
+                customAction(element, new string(charsPool.ToArray()));
+                charsPool.Shuffle();
             }
         }
 
-        private static IEnumerable<char> GetCharsPool(
-            int? numberOfChars = null,
-            bool letters = true,
-            bool numbers = true,
-            bool otherSymbols = false,
-            bool withWhitspaces = false,
-            bool shuffled = true)
+        public static IEnumerable<char> GetRandomChars(
+            int numberOfChars,
+            bool allowLowerCaseLetters = true,
+            bool allowUpperCaseLetters = true,
+            bool allowNumbers = true,
+            bool allowOtherSymbols = false,
+            bool allowWhitespaces = false,
+            bool repeatChars = true,
+            int minDistinctChars = 1)
         {
-            if (!letters && !numbers && !otherSymbols)
+            if (!(allowLowerCaseLetters || allowUpperCaseLetters) && !allowNumbers && !allowOtherSymbols)
             {
                 throw new ArgumentException("At least one flag must be set to true in order to create a random string");
             }
@@ -163,38 +196,42 @@ namespace ExtensionsPack.Core
             {
                 throw new ArgumentException("String cannot be less than 1 character long");
             }
+            var charsPool = new List<char>(140);
 
-            var charsPool = new List<char>(AllLettersChars.Count + AllNumberChars.Count + AllOtherChars.Count);
-
-            if (letters)
+            if (allowUpperCaseLetters)
             {
-                charsPool.AddRange(AllLettersChars);
+                charsPool.AddRange(UpperCaseLettersChars);
             }
 
-            if (numbers)
+            if (allowLowerCaseLetters)
+            {
+                charsPool.AddRange(LowerCaseLettersChars);
+            }
+
+            if (allowNumbers)
             {
                 charsPool.AddRange(AllNumberChars);
             }
 
-            if (otherSymbols)
+            if (allowOtherSymbols)
             {
                 charsPool.AddRange(AllOtherChars);
             }
 
-            if (withWhitspaces)
+            if (allowWhitespaces)
             {
                 charsPool.Add(' ');
             }
 
-            if (numberOfChars != null)
+            if ((!repeatChars && numberOfChars > charsPool.Count) || (repeatChars && minDistinctChars > charsPool.Count))
             {
-                for (var multiplier = numberOfChars.Value / (double)charsPool.Count; multiplier > 1; multiplier--)
-                {
-                    charsPool = charsPool.Concat(charsPool).ToList();
-                }
-                return (shuffled ? charsPool.Shuffle(1) : charsPool).Take(numberOfChars.Value).ToList();
+                throw new ArgumentException("Impossible to compose a random string of selected length with parameters specified");
             }
-            return shuffled ? charsPool.Shuffle(1) : charsPool;
+            return repeatChars
+                ? new string(charsPool.Take(minDistinctChars).Concat(Enumerable
+                    .Range(0, numberOfChars - minDistinctChars).Select(x =>
+                        charsPool[Rand.Next(0, charsPool.Count)])).Shuffle().ToArray())
+                : new string(charsPool.Shuffle().Take(numberOfChars).ToArray());
         }
     }
 }

@@ -2,9 +2,19 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <PackageId>Codemagicians.ExtensionPack</PackageId>
+    <PackageId>Codemagicians.ExtensionsPack</PackageId>
     <Authors>Sergey Shelekhov</Authors>
     <Company>Code magicians</Company>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Product>NetCore.ExtensionsPack</Product>
+    <SignAssembly>false</SignAssembly>
+    <RepositoryUrl>https://github.com/codemagicians/extensionspack.git</RepositoryUrl>
+    <RepositoryType>Public</RepositoryType>
+    <PackageProjectUrl>https://github.com/codemagicians/extensionspack.git</PackageProjectUrl>
+    <Copyright />
+    <Description>ExtensionsPack is an open source library with useful extension methods</Description>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/codemagicians/extensionspack/develop/LICENSE</PackageLicenseUrl>
+    <PackageReleaseNotes />
   </PropertyGroup>
 
 </Project>
