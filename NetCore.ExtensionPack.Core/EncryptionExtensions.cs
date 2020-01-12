@@ -4,7 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace NetCore.ExtensionPack.Core
+namespace ExtensionsPack.Core
 {
     public static class EncryptionExtensions
     {

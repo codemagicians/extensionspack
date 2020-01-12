@@ -5,7 +5,7 @@ using ExtensionsPack.Core;
 
 namespace Tests
 {
-    public class Tests
+    public class CreateRandomStringTests
     {
         private static readonly Random Rand = new Random();
 
@@ -62,6 +62,20 @@ namespace Tests
             Assert.That(numbers, Is.Not.Empty);
             Assert.That(numbers.All(n => n.Length == targetLength), Is.True);
             Assert.That(numbers.All(n => n.Distinct().Count() >= minDistinctChars));
+        }
+
+        [Test]
+        [TestCase(15, 9)]
+        [TestCase(5, 4)]
+        public void GetRandomString_WithInvalidParameters_ThrowsException(int targetLength, int minDistinctChars)
+        {
+            var del1 = new TestDelegate(() => RandomExtensions.GetRandomString(10, false, false, false, false));
+            var del2 = new TestDelegate(() => RandomExtensions.GetRandomString(50, false, false, true, repeatChars: false));
+            var del3 = new TestDelegate(() => RandomExtensions.GetRandomString(-1));
+
+            Assert.That(del1, Throws.ArgumentException);
+            Assert.That(del2, Throws.ArgumentException);
+            Assert.That(del3, Throws.ArgumentException);
         }
     }
 }
